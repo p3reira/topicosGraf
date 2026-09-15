@@ -1,25 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <meta charset="UTF-8">
+  <script type="importmap">
+  { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js" } }
+  </script>
 </head>
-<body style="margin:0;">
-  <a-scene
-    mindar-image="imageTargetSrc: targets.mind;"
-    color-space="sRGB" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+<body>
+  <video id="video" autoplay playsinline muted></video>
+  <script type="module">
+    import { FilesetResolver, HandLandmarker }
+      from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/vision_bundle.mjs";
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-    <a-light type="ambient" intensity="1"></a-light>
-   <a-assets>
-	<img id="card" src="wallpaper.jpg" />
-      </a-assets>
-    <a-entity mindar-image-target="targetIndex: 0">
-      <a-plane src="#card" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
-      <a-text value="Detectado!" align="center" position="0 0.6 0" color="#ffffff" width="2"></a-text>
-    </a-entity>
+    const video = document.getElementById('video');
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+    video.srcObject = stream;
+    await video.play();
 
-  </a-scene>
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/wasm"
+    );
+    const handLandmarker = await HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+        delegate: "GPU"
+      },
+      numHands: 2,
+      runningMode: "VIDEO"
+    });
+
+    let ultimo = -1;
+    function loop() {
+      if (video.currentTime !== ultimo) {
+        ultimo = video.currentTime;
+        const res = handLandmarker.detectForVideo(video, performance.now());
+        console.log('Mãos detectadas:', res.landmarks.length);
+      }
+      requestAnimationFrame(loop);
+    }
+    loop();
+  </script>
 </body>
 </html>
