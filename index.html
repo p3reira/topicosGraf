@@ -12,6 +12,9 @@
     import { FilesetResolver, HandLandmarker }
       from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.15/vision_bundle.mjs";
 
+    const ctx = document.getElementById('skeleton').getContext('2d');
+    const du = new DrawingUtils(ctx);
+    
     const video = document.getElementById('video');
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
     video.srcObject = stream;
@@ -34,6 +37,11 @@
       if (video.currentTime !== ultimo) {
         ultimo = video.currentTime;
         const res = handLandmarker.detectForVideo(video, performance.now());
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const mao of res.landmarks) {
+            du.drawConnectors(mao, HandLandmarker.HAND_CONNECTIONS, { color: '#4fd1c5', lineWidth: 4 });
+            du.drawLandmarks(mao, { color: '#ff5d8f', radius: 5 });
+        }
         console.log('Mãos detectadas:', res.landmarks.length);
       }
       requestAnimationFrame(loop);
